@@ -1,5 +1,5 @@
 // CAMBIA ESTA URL POR LA DE TU APPS SCRIPT PUBLICADO EN EL PASO 1
-const APPS_SCRIPT_API = "TU_URL_DE_APPS_SCRIPT_AQUI";
+const APPS_SCRIPT_API = "https://script.google.com/macros/s/AKfycbxKiCX5mEVK7iIrmBAP078DGTxGxIEPLLlua4zcb-07Rs4amm8MUIAFAaLceGn5k-Jg/exec";
 
 const CENTRO_DEFAULT = [13.689356, -89.18718]; // El Salvador por defecto
 let map;
