@@ -6,11 +6,13 @@
   <meta name="description" content="Descubre negocios locales en tu colonia — impresiones, pagos, comida, bancos y más." />
   <title>LocalCerca · Tu colonia en el mapa</title>
 
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Fuentes -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -19,9 +21,6 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════════════
-       SPLASH
-  ═══════════════════════════════════════════════════ -->
   <div id="splash" aria-hidden="true">
     <div class="splash-inner">
       <div class="splash-logo">
@@ -36,18 +35,13 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════
-       HEADER
-  ═══════════════════════════════════════════════════ -->
   <header id="header" role="banner">
     <div class="header-inner">
 
-      <!-- Logo -->
       <a href="/" class="logo" aria-label="LocalCerca inicio">
         <span class="logo-local">Local</span><span class="logo-cerca">Cerca</span><span class="logo-dot" aria-hidden="true">·</span>
       </a>
 
-      <!-- Search -->
       <div class="search-container" role="search">
         <div class="search-field" id="search-field">
           <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -68,14 +62,12 @@
           </button>
         </div>
 
-        <!-- Sugerencias -->
         <div class="search-suggestions" id="search-suggestions" role="listbox" aria-label="Sugerencias de búsqueda" hidden>
           <div class="suggestions-label">Búsquedas frecuentes cerca de ti</div>
           <div class="suggestions-chips" id="suggestions-chips"></div>
         </div>
       </div>
 
-      <!-- Acciones header -->
       <div class="header-actions">
         <button class="btn-icon" id="btn-gps" aria-label="Ir a mi ubicación" title="Mi ubicación">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -91,7 +83,6 @@
 
     </div>
 
-    <!-- Colonias -->
     <nav class="colonia-bar" aria-label="Filtrar por colonia">
       <span class="colonia-label" aria-hidden="true">Zona</span>
       <div class="colonias-scroll" role="group" aria-label="Colonias disponibles">
@@ -106,13 +97,9 @@
     </nav>
   </header>
 
-  <!-- ═══════════════════════════════════════════════════
-       MAPA
-  ═══════════════════════════════════════════════════ -->
   <main id="main-content">
     <div id="map" role="application" aria-label="Mapa de negocios locales"></div>
 
-    <!-- Controles flotantes del mapa -->
     <div class="map-controls" aria-label="Controles del mapa">
       <div class="map-ctrl-group">
         <button class="map-ctrl-btn" id="zoom-in" aria-label="Acercar">
@@ -125,12 +112,10 @@
       </div>
     </div>
 
-    <!-- Indicador de resultado -->
     <div class="result-badge" id="result-badge" aria-live="polite" aria-atomic="true" hidden>
       <span id="result-text"></span>
     </div>
 
-    <!-- Leyenda -->
     <div class="map-legend" aria-label="Leyenda del mapa">
       <div class="legend-item">
         <span class="legend-dot legend-dot--premium" aria-hidden="true"></span>
@@ -147,12 +132,8 @@
     </div>
   </main>
 
-  <!-- ═══════════════════════════════════════════════════
-       PANEL / GAVETA DE NEGOCIOS
-  ═══════════════════════════════════════════════════ -->
   <aside id="panel" aria-label="Lista de negocios" aria-expanded="true">
 
-    <!-- Handle para arrastrar en móvil -->
     <div class="panel-handle" id="panel-handle" role="button" aria-label="Contraer o expandir lista" tabindex="0">
       <div class="handle-bar" aria-hidden="true"></div>
     </div>
@@ -171,10 +152,8 @@
       </div>
     </div>
 
-    <!-- Tarjetas -->
     <div class="cards-scroll" id="cards-scroll" role="list" aria-label="Lista de negocios">
 
-      <!-- Estado vacío -->
       <div class="empty-state" id="empty-state" hidden role="status">
         <div class="empty-icon" aria-hidden="true">🔍</div>
         <p class="empty-title">Sin resultados</p>
@@ -182,7 +161,6 @@
         <button class="empty-clear" onclick="clearSearch()">Ver todos los negocios</button>
       </div>
 
-      <!-- Estado de carga -->
       <div class="loading-state" id="loading-state" role="status" aria-label="Cargando negocios">
         <div class="skeleton-card" aria-hidden="true"></div>
         <div class="skeleton-card" aria-hidden="true"></div>
@@ -192,9 +170,6 @@
     </div>
   </aside>
 
-  <!-- ═══════════════════════════════════════════════════
-       MODAL DETALLE
-  ═══════════════════════════════════════════════════ -->
   <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-name" hidden>
     <div class="modal" id="modal">
       <button class="modal-close" id="modal-close" aria-label="Cerrar detalle">
@@ -203,41 +178,8 @@
 
       <div class="modal-scroll">
 
-        <!-- Cabecera modal -->
         <div class="modal-top">
           <div class="modal-emoji" id="modal-emoji" aria-hidden="true"></div>
           <div class="modal-top-info">
             <div class="modal-badges" id="modal-badges"></div>
-            <h2 class="modal-name" id="modal-name"></h2>
-            <div class="modal-colonia" id="modal-colonia"></div>
-          </div>
-        </div>
-
-        <!-- Estrellas + estado -->
-        <div class="modal-rating" id="modal-rating"></div>
-
-        <!-- Descripción -->
-        <p class="modal-desc" id="modal-desc"></p>
-
-        <!-- Servicios -->
-        <div class="modal-section">
-          <div class="modal-section-title">Servicios disponibles</div>
-          <div class="modal-tags" id="modal-tags"></div>
-        </div>
-
-        <!-- Info grid -->
-        <div class="modal-grid" id="modal-grid"></div>
-
-        <!-- Contacto (solo premium) -->
-        <div class="modal-section" id="modal-contact-section">
-          <div class="modal-section-title" id="modal-contact-title"></div>
-          <div class="modal-contact-list" id="modal-contact-list"></div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+            <h2 class="modal-name"
