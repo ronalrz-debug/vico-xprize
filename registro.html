@@ -2,29 +2,149 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Registra tu Negocio en vico</title>
   <style>
-    body { font-family: 'Inter', sans-serif; background: #0D1410; color: #fff; padding: 20px; display: flex; justify-content: center; }
-    .form-box { background: #141C18; padding: 30px; border-radius: 12px; max-width: 450px; width: 100%; border: 1px solid rgba(255,255,255,0.1); }
-    h2 { font-family: 'Syne', sans-serif; margin-top: 0; color: #22A05E; }
-    label { display: block; margin: 12px 0 6px; font-size: 14px; }
-    input, textarea, select { width: 100%; padding: 10px; background: #1C2820; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; box-sizing: border-box; }
-    button { background: #22A05E; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; margin-top: 20px; font-weight: bold; cursor: pointer; }
-    .coord-btn { background: #1C2820; border: 1px dashed #22A05E; color: #22A05E; margin-top: 5px; cursor:pointer; font-size:12px; padding:6px; }
+    :root {
+      --bg: #0D1410;
+      --surface: #141C18;
+      --surface-input: #1C2820;
+      --accent: #22A05E;
+      --text: #FFFFFF;
+      --text-muted: #aaaaaa;
+    }
+
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+      background: var(--bg); 
+      color: var(--text); 
+      padding: 20px; 
+      margin: 0;
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .form-box { 
+      background: var(--surface); 
+      padding: 30px; 
+      border-radius: 12px; 
+      max-width: 450px; 
+      width: 100%; 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+    }
+
+    h2 { 
+      font-size: 24px;
+      margin-top: 0; 
+      margin-bottom: 8px;
+      color: var(--accent); 
+    }
+
+    .subtitle {
+      font-size: 13px; 
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.4;
+    }
+
+    label { 
+      display: block; 
+      margin: 16px 0 6px; 
+      font-size: 14px; 
+      font-weight: 500;
+    }
+
+    input, textarea, select { 
+      width: 100%; 
+      padding: 12px; 
+      background: var(--surface-input); 
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+      border-radius: 6px; 
+      color: var(--text); 
+      font-size: 14px;
+      box-sizing: border-box; 
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .coord-row {
+      display: flex; 
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .coord-btn { 
+      background: var(--surface-input); 
+      border: 1px dashed var(--accent); 
+      color: var(--accent); 
+      width: 100%;
+      padding: 10px; 
+      border-radius: 6px;
+      font-size: 13px; 
+      font-weight: 600;
+      cursor: pointer; 
+      transition: background 0.2s;
+    }
+
+    .coord-btn:hover {
+      background: rgba(34, 160, 94, 0.1);
+    }
+
+    .btn-submit { 
+      background: var(--accent); 
+      color: white; 
+      border: none; 
+      padding: 14px; 
+      width: 100%; 
+      border-radius: 6px; 
+      margin-top: 28px; 
+      font-size: 15px;
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: opacity 0.2s;
+    }
+
+    .btn-submit:hover {
+      opacity: 0.9;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+    }
   </style>
 </head>
 <body>
 
   <div class="form-box">
     <h2>Da de alta tu negocio</h2>
-    <p style="font-size: 12px; color: #aaa;">Tu negocio pasará por un proceso de revisión antes de aparecer en el mapa activo.</p>
+    <p class="subtitle">Completa la información de tu comercio. Los datos ingresados pasarán por una revisión manual antes de aparecer listados de forma pública en el mapa.</p>
     
     <form id="registroForm">
-      <label>Nombre del Comercio *</label>
-      <input type="text" id="nombre" required placeholder="Ej. Pupusería El Buen Sabor">
+      <label for="nombre">Nombre del Comercio *</label>
+      <input type="text" id="nombre" required placeholder="Ej. Papelería e Impresiones San Benito">
 
-      <label>Colonia / Zona *</label>
+      <label for="colonia">Colonia / Zona *</label>
       <select id="colonia" required>
         <option value="Urb. Nuevo Lourdes">Urb. Nuevo Lourdes</option>
         <option value="Col. Escalón">Col. Escalón</option>
@@ -32,68 +152,6 @@
         <option value="Merliot">Merliot</option>
       </select>
 
-      <label>Categoría</label>
+      <label for="categoria">Categoría principal</label>
       <select id="categoria">
-        <option value="comida">Comida y Restaurantes</option>
-        <option value="servicios">Servicios (Impresiones, Pagos, Bancos)</option>
-        <option value="salud">Salud y Farmacias</option>
-        <option value="ocio">Ocio y Otros</option>
-      </select>
-
-      <label>Descripción de lo que ofreces *</label>
-      <textarea id="descripcion" rows="3" required placeholder="Ej. Impresiones a color, copias nítidas, pago de recibos de agua y luz. Venta de útiles escolares."></textarea>
-
-      <label>Teléfono de contacto</label>
-      <input type="tel" id="telefono" placeholder="Ej. 2200-1122">
-
-      <label>Ubicación Geográfica *</label>
-      <div style="display: flex; gap: 10px;">
-        <input type="number" step="any" id="lat" placeholder="Latitud" required readonly>
-        <input type="number" step="any" id="lng" placeholder="Longitud" required readonly>
-      </div>
-      <button type="button" class="coord-btn" onclick="obtenerCoordenadasActuales()">📍 Detectar mi ubicación actual en este dispositivo</button>
-
-      <button type="submit">Enviar Solicitud de Alta</button>
-    </form>
-  </div>
-
-  <script>
-    // CAMBIA ESTA URL POR TU URL GENERADA EN EL PASO 1 (APPS SCRIPT)
-    const API_URL = "TU_URL_DE_APPS_SCRIPT_AQUI";
-
-    function obtenerCoordenadasActuales() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          document.getElementById('lat').value = pos.coords.latitude;
-          document.getElementById('lng').value = pos.coords.longitude;
-        }, () => alert("Por favor habilita los permisos de ubicación en tu navegador."));
-      }
-    }
-
-    document.getElementById('registroForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const payload = {
-        nombre: document.getElementById('nombre').value,
-        colonia: document.getElementById('colonia').value,
-        categoria: document.getElementById('categoria').value,
-        descripcion: document.getElementById('descripcion').value,
-        telefono: document.getElementById('telefono').value,
-        lat: document.getElementById('lat').value,
-        lng: document.getElementById('lng').value
-      };
-
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          mode: 'no-cors', // Evita problemas de CORS en Apps Script
-          body: JSON.stringify(payload)
-        });
-        alert("¡Solicitud enviada con éxito! El administrador revisará y aprobará los datos pronto.");
-        document.getElementById('registroForm').reset();
-      } catch (err) {
-        alert("Error al enviar el formulario.");
-      }
-    };
-  </script>
-</body>
-</html>
+        <option value="serv
