@@ -1,957 +1,298 @@
-* ═══════════════════════════════════════════════════════════
-   LocalCerca · app.js
-   Mapa · Búsqueda · Panel · Modal · API connector
-═══════════════════════════════════════════════════════════
-
-   PARA CONECTAR CON TU GOOGLE APPS SCRIPT:
-   1. Publica el script como API (ver LocalCerca_AppsScript.js)
-   2. Reemplaza la URL en APPS_SCRIPT_URL
-   3. Cambia USAR_DATOS_DEMO a false
-
-═══════════════════════════════════════════════════════════ */
-
-'use strict';
-
-/* ── CONFIGURACIÓN ────────────────────────────────────────── */
-const APPS_SCRIPT_URL = 'TU_URL_DE_APPS_SCRIPT_AQUI';
-const USAR_DATOS_DEMO = true;   // ← cambiar a false cuando tengas la API lista
-
-const MAPA_CENTRO_DEFAULT = [13.6929, -89.2182]; // Urb. Nuevo Lourdes
-const MAPA_ZOOM_DEFAULT   = 16;
-
-// Sugerencias que aparecen antes de escribir
-const SUGERENCIAS_POPULARES = [
-  'impresión de fotos',
-  'papel fotográfico',
-  'retiros banco agrícola',
-  'pago de recibos',
-  'venta de minutas',
-  'comida para llevar',
-  'recargas tigo',
-  'fotos carnet',
-  'copias',
-  'pago de agua',
-];
-
-/* ── DATOS DE DEMO ────────────────────────────────────────── */
-const DEMO_NEGOCIOS = [
-  {
-    id: 1,
-    nombre:      'Librería y Copy Center Hernández',
-    colonia:     'Urb. Nuevo Lourdes',
-    direccion:   'Calle Principal, Casa 14-B',
-    lat:          13.6929,
-    lng:         -89.2182,
-    categoria:   'Librería / Copias',
-    emoji:        '📚',
-    premium:      true,
-    servicios:   ['impresión de fotos', 'papel fotográfico', 'copias', 'espiralados', 'plastificado', 'útiles escolares', 'impresión documentos', 'fax'],
-    descripcion:  'Servicios completos de impresión y papelería. Especialistas en impresión fotográfica en papel fotográfico mate y brillante.',
-    telefono:    '+503 2222-3344',
-    whatsapp:    '+50322223344',
-    facebook:    'libreriaHernandez',
-    horario:     'Lun–Sáb  8:00–18:00',
-    abierto:      true,
-    estrellas:    4.8,
-    resenas:      47,
-    distancia:   '120m',
-  },
-  {
-    id: 2,
-    nombre:      'Foto Express',
-    colonia:     'Urb. Nuevo Lourdes',
-    direccion:   'Av. Secundaria 8, Local 3',
-    lat:          13.6945,
-    lng:         -89.2195,
-    categoria:   'Fotografía',
-    emoji:        '📷',
-    premium:      true,
-    servicios:   ['fotos carnet', 'papel fotográfico', 'impresión fotos', 'ampliaciones', 'fotos pasaporte', 'enmarcado', 'canvas', 'álbumes'],
-    descripcion:  'Estudio fotográfico con impresiones de alta calidad en papel fotográfico Kodak. Fotos para documentos en minutos.',
-    telefono:    '+503 2233-4455',
-    whatsapp:    '+50322334455',
-    facebook:    'fotoExpress',
-    horario:     'Lun–Dom  8:30–17:30',
-    abierto:      true,
-    estrellas:    4.9,
-    resenas:      89,
-    distancia:   '480m',
-  },
-  {
-    id: 3,
-    nombre:      'Mini Super El Buen Precio',
-    colonia:     'Urb. Nuevo Lourdes',
-    direccion:   'Pasaje Los Pinos 4',
-    lat:          13.6915,
-    lng:         -89.2168,
-    categoria:   'Supermercado',
-    emoji:        '🛒',
-    premium:      false,
-    servicios:   ['pago de agua', 'pago de recibos', 'pago de luz', 'recargas tigo', 'recargas claro', 'venta de comida', 'bebidas', 'lácteos'],
-    descripcion:  'Minisuper con servicios de pago de recibos y recargas. Abierto todos los días.',
-    telefono:    '+503 2211-5566',
-    whatsapp:     null,
-    facebook:     null,
-    horario:     'Lun–Dom  7:00–20:00',
-    abierto:      true,
-    estrellas:    3.9,
-    resenas:      22,
-    distancia:   '210m',
-  },
-  {
-    id: 4,
-    nombre:      'Pupusería Doña Chela',
-    colonia:     'Urb. Nuevo Lourdes',
-    direccion:   'Calle El Sauce 12',
-    lat:          13.6922,
-    lng:         -89.2175,
-    categoria:   'Comida típica',
-    emoji:        '🫓',
-    premium:      false,
-    servicios:   ['venta de comida mexicana', 'pupusas', 'tacos', 'burritos', 'minutas', 'comida para llevar', 'almuerzo', 'elotes locos'],
-    descripcion:  'Las mejores pupusas y comida típica de la colonia. También vendemos minutas de frutas y elotes locos.',
-    telefono:    '+503 7788-9900',
-    whatsapp:    '+50377889900',
-    facebook:    'pupuseriaChela',
-    horario:     'Mar–Dom  11:00–21:00',
-    abierto:      false,
-    estrellas:    4.6,
-    resenas:      134,
-    distancia:   '90m',
-  },
-  {
-    id: 5,
-    nombre:      'Agente Banco Agrícola',
-    colonia:     'Urb. Nuevo Lourdes',
-    direccion:   'Centro Comercial Lourdes, Local 7',
-    lat:          13.6936,
-    lng:         -89.2201,
-    categoria:   'Servicios financieros',
-    emoji:        '🏦',
-    premium:      false,
-    servicios:   ['retiros banco agrícola', 'depósitos', 'pago de préstamos', 'consulta de saldo', 'transferencias'],
-    descripcion:  'Agente corresponsal autorizado del Banco Agrícola. Realiza retiros, depósitos y pagos sin ir al banco.',
-    telefono:    '+503 2244-6677',
-    whatsapp:     null,
-    facebook:     null,
-    horario:     'Lun–Sáb  8:00–17:00',
-    abierto:      true,
-    estrellas:    4.1,
-    resenas:      31,
-    distancia:   '300m',
-  },
-  {
-    id: 6,
-    nombre:      'Farmacia San Lucas',
-    colonia:     'Col. Escalón',
-    direccion:   '79 Av. Norte 215',
-    lat:          13.7012,
-    lng:         -89.2290,
-    categoria:   'Farmacia',
-    emoji:        '💊',
-    premium:      false,
-    servicios:   ['medicamentos', 'vitaminas', 'venta de papas fritas', 'snacks', 'recargas', 'medición de presión', 'prueba de glucosa'],
-    descripcion:  'Farmacia con servicio de entrega a domicilio. También contamos con snacks y productos de conveniencia.',
-    telefono:    '+503 2255-7788',
-    whatsapp:    '+50322557788',
-    facebook:    'farmaciaSanLucas',
-    horario:     'Lun–Dom  7:00–21:00',
-    abierto:      true,
-    estrellas:    4.3,
-    resenas:      58,
-    distancia:   '1.2km',
-  },
-  {
-    id: 7,
-    nombre:      'Papelería y Servicios Net',
-    colonia:     'Santa Elena',
-    direccion:   'Blvd. Santa Elena, Local 2B',
-    lat:          13.6870,
-    lng:         -89.2320,
-    categoria:   'Papelería / Internet',
-    emoji:        '🖨️',
-    premium:      false,
-    servicios:   ['impresión de fotos', 'documentos', 'copias', 'internet', 'pago de recibos', 'escaneo', 'quemado de cd'],
-    descripcion:  'Centro de servicios con computadoras, impresión y trámites varios.',
-    telefono:    '+503 2266-8899',
-    whatsapp:    '+50322668899',
-    facebook:     null,
-    horario:     'Lun–Sáb  8:00–19:00',
-    abierto:      true,
-    estrellas:    3.7,
-    resenas:      19,
-    distancia:   '2.1km',
-  },
-];
-
 /* ════════════════════════════════════════════════════════════
-   ESTADO GLOBAL
+   1. CONFIGURACIÓN, CONSTANTES Y ESTADO GLOBAL
 ════════════════════════════════════════════════════════════ */
+const CATEGORIAS_VALIDAS = ['comida', 'ropa', 'tecnologia', 'servicios', 'salud', 'educacion', 'ocio', 'otros'];
+const COORDENADAS_DEFAULT = [13.689356, -89.18718]; // Coordenadas del centro por defecto
+const MAPA_ZOOM_DEFAULT = 14;
+
+let map;
+let marcadoresCluster;
+let marcadorUsuario = null;
+
+// Estado único de la aplicación
 const Estado = {
-  negocios:     [],
-  filtrados:    [],
-  query:        '',
-  colonia:      'todos',
-  ordenar:      'relevancia',
-  userLatLng:   null,
-  negocioAbierto: null,  // id del popup abierto
+  negocios: [],
+  categoriaActiva: 'todos',
+  busquedaQuery: '',
+  userLatLng: null
 };
 
 /* ════════════════════════════════════════════════════════════
-   MAPA
+   2. INICIALIZACIÓN DEL MAPA (LEAFLET)
 ════════════════════════════════════════════════════════════ */
-let map;
-const layerMarkers = {};  // id → marker de Leaflet
-
 function initMapa() {
+  // Inicializar contenedor del mapa Leaflet
   map = L.map('map', {
-    center:      MAPA_CENTRO_DEFAULT,
-    zoom:        MAPA_ZOOM_DEFAULT,
-    zoomControl: false,
-    attributionControl: false,
-  });
+    zoomControl: false 
+  }).setView(COORDENADAS_DEFAULT, MAPA_ZOOM_DEFAULT);
 
-  // Tiles oscuros CARTO — gratuito, sin API key
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
-    maxZoom: 20,
+  // Capa de diseño del mapa (OpenStreetMap con estilo sutil)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
   }).addTo(map);
 
-  // Zoom personalizado
-  document.getElementById('zoom-in').addEventListener('click',  () => map.zoomIn());
-  document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+  // Mover botones de zoom a la esquina inferior derecha
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // Cerrar popup al hacer click en mapa
-  map.on('click', () => cerrarSugerencias());
-}
-
-/* ── CREAR MARCADOR ──────────────────────────────────────── */
-function crearIcono(negocio) {
-  const colorFondo = negocio.premium ? '#2C1F06' : '#0F2218';
-  const colorPin   = negocio.premium ? '#E8921A' : '#1A7A4A';
-
-  const radar = negocio.premium
-    ? `<div class="mk-radar"></div>`
-    : '';
-
-  const star = negocio.premium
-    ? `<div class="mk-premium-star" aria-hidden="true">★</div>`
-    : '';
-
-  const html = `
-    <div class="mk-wrap">
-      ${radar}
-      <div class="mk-pin" style="background:${colorPin}" data-id="${negocio.id}" aria-label="${negocio.nombre}">
-        <span class="mk-emoji" role="img" aria-hidden="true">${negocio.emoji}</span>
-      </div>
-      ${star}
-    </div>`;
-
-  return L.divIcon({
-    html,
-    className:  '',
-    iconSize:   [36, 44],
-    iconAnchor: [18, 44],
-    popupAnchor:[0, -48],
+  // Inicializar el grupo de agrupación de marcadores (MarkerCluster)
+  marcadoresCluster = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true
   });
+  map.addLayer(marcadoresCluster);
 }
-
-function crearIconoUsuario() {
-  return L.divIcon({
-    html:       `<div class="mk-user" aria-label="Tu posición"></div>`,
-    className:  '',
-    iconSize:   [16, 16],
-    iconAnchor: [8, 8],
-  });
-}
-
-/* ── POPUP ───────────────────────────────────────────────── */
-function buildPopupHTML(n) {
-  const stars      = '★'.repeat(Math.round(n.estrellas));
-  const tipoBadge  = n.premium
-    ? `<span class="pop-badge pop-badge--premium">★ Premium</span>`
-    : `<span class="pop-badge pop-badge--regular">Local</span>`;
-
-  const contacto = n.premium
-    ? `<div class="pop-contact">
-        ${n.telefono  ? `<a class="pop-contact-link" href="tel:${n.telefono}">📞 ${n.telefono}</a>` : ''}
-        ${n.whatsapp  ? `<a class="pop-contact-link" href="https://wa.me/${n.whatsapp}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
-        ${n.facebook  ? `<a class="pop-contact-link" href="https://facebook.com/${n.facebook}" target="_blank" rel="noopener">📘 Facebook</a>` : ''}
-       </div>`
-    : '';
-
-  const statusDot = n.abierto
-    ? `<span class="status-dot status-dot--open" aria-hidden="true"></span> Abierto`
-    : `<span class="status-dot status-dot--closed" aria-hidden="true"></span> Cerrado`;
-
-  const colorFondo = n.premium ? 'rgba(232,146,26,0.10)' : 'rgba(26,122,74,0.10)';
-
-  return `
-    <div class="pop">
-      <div class="pop-head">
-        <div class="pop-emoji" style="background:${colorFondo}">${n.emoji}</div>
-        <div class="pop-info">
-          ${tipoBadge}
-          <div class="pop-name">${n.nombre}</div>
-        </div>
-      </div>
-      <div class="pop-services">${n.servicios.slice(0, 4).join(' · ')}</div>
-      <div class="pop-row">
-        <span class="pop-status">${statusDot}</span>
-        <span class="pop-dist">📍 ${n.distancia}</span>
-        <span class="pop-stars">${stars}</span>
-      </div>
-      ${contacto}
-      <button class="pop-btn" onclick="abrirModal(${n.id})">
-        Ver perfil completo
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-    </div>`;
-}
-
-/* ── RENDERIZAR MARCADORES ───────────────────────────────── */
-function renderizarMarcadores() {
-  // Quitar marcadores anteriores
-  Object.values(layerMarkers).forEach(m => map.removeLayer(m));
-  Object.keys(layerMarkers).forEach(k => delete layerMarkers[k]);
-
-  Estado.filtrados.forEach(n => {
-    const marker = L.marker([n.lat, n.lng], { icon: crearIcono(n), alt: n.nombre });
-
-    marker.bindPopup(buildPopupHTML(n), {
-      maxWidth:      280,
-      minWidth:      240,
-      closeButton:   true,
-      className:     'lc-popup',
-    });
-
-    marker.bindTooltip(n.nombre, {
-      direction: 'top',
-      offset:    [0, -46],
-    });
-
-    marker.addTo(map);
-    layerMarkers[n.id] = marker;
-  });
-}
-
-/* ── MARCADOR USUARIO ────────────────────────────────────── */
-let markerUsuario = null;
 
 function ponerMarcadorUsuario(lat, lng) {
-  if (markerUsuario) map.removeLayer(markerUsuario);
-  markerUsuario = L.marker([lat, lng], {
-    icon:          crearIconoUsuario(),
-    zIndexOffset:  1000,
-    alt:           'Tu posición',
+  const iconoUsuario = L.divIcon({
+    className: 'marcador-usuario-pulsante',
+    html: '<div class="pulso"></div><div class="centro"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   });
-  markerUsuario.bindTooltip('Tú estás aquí', { direction: 'top' });
-  markerUsuario.addTo(map);
+
+  if (marcadorUsuario) {
+    marcadorUsuario.setLatLng([lat, lng]);
+  } else {
+    marcadorUsuario = L.marker([lat, lng], { icon: iconoUsuario }).addTo(map);
+  }
 }
 
 /* ════════════════════════════════════════════════════════════
-   DATOS — carga desde API o demo
+   3. CONSUMO DE DATOS (API / JSON)
 ════════════════════════════════════════════════════════════ */
 async function cargarNegocios() {
-  mostrarSkeleton(true);
-
   try {
-    if (USAR_DATOS_DEMO) {
-      // Simular delay de red
-      await new Promise(r => setTimeout(r, 900));
-      Estado.negocios = DEMO_NEGOCIOS;
-    } else {
-      const url = `${APPS_SCRIPT_URL}?accion=negocios`;
-      const res  = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Error en API');
-      Estado.negocios = json.negocios;
+    // Intentar cargar el archivo estructurado de negocios locales
+    const respuesta = await fetch('data.json');
+    if (!respuesta.ok) {
+      throw new Error(`Error en el servidor: ${respuesta.status} ${respuesta.statusText}`);
     }
-
-    aplicarFiltros();
-
-  } catch (err) {
-    console.error('[LocalCerca] Error al cargar negocios:', err);
-    mostrarError('No se pudieron cargar los negocios. Intenta recargar la página.');
-  } finally {
-    mostrarSkeleton(false);
+    Estado.negocios = await respuesta.json();
+    actualizarInterfaz();
+  } catch (error) {
+    console.error('[LocalCerca] Error al obtener el repositorio de comercios:', error);
+    mostrarError('No se pudo conectar a la base de datos. Cargando modo demostración local...');
+    
+    // Datos de respaldo por si el fetch falla en local
+    Estado.negocios = [
+      { id: 1, nombre: "Café Don Juan", categoria: "comida", lat: 13.6893, lng: -89.1871, telefono: "2200-0000", descripcion: "Café artesanal premium." },
+      { id: 2, nombre: "Boutique Estilo", categoria: "ropa", lat: 13.6910, lng: -89.1850, telefono: "2200-0001", descripcion: "Moda urbana contemporánea." }
+    ];
+    actualizarInterfaz();
   }
 }
 
 /* ════════════════════════════════════════════════════════════
-   FILTROS Y BÚSQUEDA
+   4. RENDERIZADO Y CONTROLADORES DE INTERFAZ (DOM)
 ════════════════════════════════════════════════════════════ */
-function aplicarFiltros() {
-  const q   = Estado.query.toLowerCase().trim();
-  const col = Estado.colonia;
-
-  let resultado = Estado.negocios.filter(n => {
-    const matchColonia = col === 'todos' || n.colonia === col;
-    if (!matchColonia) return false;
-
-    if (!q) return true;
-
-    // Buscar en nombre, servicios, categoría, descripción
-    const haystack = [
-      n.nombre,
-      ...n.servicios,
-      n.categoria,
-      n.descripcion,
-    ].join(' ').toLowerCase();
-
-    // Coincidencia exacta de frase
-    if (haystack.includes(q)) return true;
-
-    // Coincidencia por palabras individuales (≥3 letras)
-    return q.split(/\s+/).filter(p => p.length >= 3).some(p => haystack.includes(p));
+function actualizarInterfaz() {
+  // Filtrado de la lista maestra basado en el Estado global
+  const negociosFiltrados = Estado.negocios.filter(negocio => {
+    const cumpleCategoria = Estado.categoriaActiva === 'todos' || negocio.categoria === Estado.categoriaActiva;
+    const cumpleBusqueda = negocio.nombre.toLowerCase().includes(Estado.busquedaQuery.toLowerCase()) ||
+                           (negocio.descripcion && negocio.descripcion.toLowerCase().includes(Estado.busquedaQuery.toLowerCase()));
+    return cumpleCategoria && cumpleBusqueda;
   });
 
-  // Ordenar
-  resultado = ordenar(resultado, Estado.ordenar);
-
-  Estado.filtrados = resultado;
-
-  renderizarMarcadores();
-  renderizarTarjetas();
-  actualizarResultBadge();
-
-  // Registrar búsqueda si hay query
-  if (q.length >= 3) registrarBusqueda(q);
+  renderizarListaTarjetas(negociosFiltrados);
+  actualizarMarcadoresMapa(negociosFiltrados);
 }
 
-function ordenar(lista, criterio) {
-  return [...lista].sort((a, b) => {
-    if (criterio === 'distancia') {
-      const da = parseFloat(a.distancia) || 9999;
-      const db = parseFloat(b.distancia) || 9999;
-      if (da !== db) return da - db;
-    }
-    if (criterio === 'estrellas') {
-      if (b.estrellas !== a.estrellas) return b.estrellas - a.estrellas;
-    }
-    // Relevancia: premium primero, luego estrellas
-    if (b.premium !== a.premium) return (b.premium ? 1 : 0) - (a.premium ? 1 : 0);
-    return b.estrellas - a.estrellas;
-  });
-}
+function renderizarListaTarjetas(lista) {
+  const contenedor = document.getElementById('lista-negocios');
+  if (!contenedor) return;
+  contenedor.innerHTML = '';
 
-/* ════════════════════════════════════════════════════════════
-   TARJETAS
-════════════════════════════════════════════════════════════ */
-function renderizarTarjetas() {
-  const scroll   = document.getElementById('cards-scroll');
-  const empty    = document.getElementById('empty-state');
-  const loading  = document.getElementById('loading-state');
-  const count    = document.getElementById('panel-count');
-  const emptyTerm= document.getElementById('empty-term');
-
-  // Limpieza (dejar empty y loading en el DOM)
-  scroll.querySelectorAll('.biz-card').forEach(c => c.remove());
-
-  const lista = Estado.filtrados;
-  count.textContent = lista.length
-    ? `${lista.length} negocio${lista.length !== 1 ? 's' : ''}`
-    : '';
-
-  if (!lista.length) {
-    empty.removeAttribute('hidden');
-    emptyTerm.textContent = Estado.query || Estado.colonia;
-    return;
-  }
-
-  empty.setAttribute('hidden', '');
-  loading.setAttribute('hidden', '');
-
-  lista.forEach((n, i) => {
-    const card = crearTarjeta(n, i);
-    scroll.appendChild(card);
-  });
-}
-
-function crearTarjeta(n, index) {
-  const card = document.createElement('article');
-  card.className = 'biz-card' + (n.premium ? ' biz-card--premium' : '');
-  card.setAttribute('role', 'listitem');
-  card.setAttribute('tabindex', '0');
-  card.setAttribute('aria-label', `${n.nombre}, ${n.distancia}`);
-  card.style.animationDelay = `${index * 0.04}s`;
-
-  const stars = '★'.repeat(Math.round(n.estrellas));
-  const colorEmoji = n.premium ? 'rgba(232,146,26,0.12)' : 'rgba(26,122,74,0.12)';
-  const premiumBadge = n.premium
-    ? `<span class="card-premium-badge">★ Premium</span>`
-    : '';
-
-  // En mobile: layout horizontal compacto
-  // En desktop (sidebar): layout diferente con .card-body
-  card.innerHTML = `
-    <div class="card-top">
-      <div class="card-emoji" style="background:${colorEmoji}">${n.emoji}</div>
-      <div class="card-name">${n.nombre}</div>
-    </div>
-    <div class="card-body">
-      <div class="card-name-full">${n.nombre} ${premiumBadge}</div>
-      <div class="card-services">${n.servicios.slice(0, 5).join(' · ')}</div>
-      <div class="card-footer">
-        <span class="card-dist">📍 ${n.distancia}</span>
-        <span class="card-stars">${stars}</span>
+  if (lista.length === 0) {
+    contenedor.innerHTML = `
+      <div class="sin-resultados animated fadeIn">
+        <p>No se encontraron comercios que coincidan con los criterios actuales.</p>
       </div>
-    </div>`;
-
-  // Click → abrir modal
-  card.addEventListener('click', () => abrirModal(n.id));
-  card.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      abrirModal(n.id);
-    }
-  });
-
-  // Hover → mostrar popup en mapa
-  card.addEventListener('mouseenter', () => {
-    const marker = layerMarkers[n.id];
-    if (marker) marker.openPopup();
-  });
-
-  return card;
-}
-
-/* ── RESULT BADGE ────────────────────────────────────────── */
-function actualizarResultBadge() {
-  const badge   = document.getElementById('result-badge');
-  const text    = document.getElementById('result-text');
-  const q       = Estado.query;
-  const total   = Estado.filtrados.length;
-
-  if (q && total >= 0) {
-    text.textContent = total
-      ? `${total} negocio${total !== 1 ? 's' : ''} con "${q}"`
-      : `Sin resultados para "${q}"`;
-    badge.removeAttribute('hidden');
-    setTimeout(() => badge.setAttribute('hidden', ''), 4000);
-  } else {
-    badge.setAttribute('hidden', '');
-  }
-}
-
-/* ════════════════════════════════════════════════════════════
-   MODAL DETALLE
-════════════════════════════════════════════════════════════ */
-function abrirModal(id) {
-  const n = Estado.negocios.find(b => b.id === id);
-  if (!n) return;
-
-  const overlay = document.getElementById('modal-overlay');
-  const stars   = '★'.repeat(Math.floor(n.estrellas));
-  const colorEmoji = n.premium ? 'rgba(232,146,26,0.12)' : 'rgba(26,122,74,0.12)';
-
-  // Emoji
-  document.getElementById('modal-emoji').textContent = n.emoji;
-  document.getElementById('modal-emoji').style.background = colorEmoji;
-
-  // Badges
-  const badges = [];
-  if (n.premium) badges.push(`<span class="modal-badge modal-badge--premium">★ Premium</span>`);
-  badges.push(n.abierto
-    ? `<span class="modal-badge modal-badge--open">● Abierto</span>`
-    : `<span class="modal-badge modal-badge--closed">● Cerrado</span>`);
-  document.getElementById('modal-badges').innerHTML = badges.join('');
-
-  // Info básica
-  document.getElementById('modal-name').textContent   = n.nombre;
-  document.getElementById('modal-colonia').innerHTML  = `📍 ${n.colonia} · ${n.direccion}`;
-  document.getElementById('modal-desc').textContent   = n.descripcion;
-
-  // Rating
-  document.getElementById('modal-rating').innerHTML = `
-    <span class="rating-stars">${stars}</span>
-    <span class="rating-val">${n.estrellas}</span>
-    <span class="rating-count">(${n.resenas} reseñas)</span>
-    <span style="margin-left:auto;font-size:12px;color:var(--c-text-3)">📍 ${n.distancia}</span>`;
-
-  // Tags de servicios
-  document.getElementById('modal-tags').innerHTML = n.servicios
-    .map(s => `<span class="modal-tag">${s}</span>`)
-    .join('');
-
-  // Grid de info
-  document.getElementById('modal-grid').innerHTML = `
-    <div class="modal-info-cell">
-      <div class="info-label">Horario</div>
-      <div class="info-value">${n.horario}</div>
-    </div>
-    <div class="modal-info-cell">
-      <div class="info-label">Categoría</div>
-      <div class="info-value">${n.categoria}</div>
-    </div>
-    <div class="modal-info-cell">
-      <div class="info-label">Distancia</div>
-      <div class="info-value">${n.distancia}</div>
-    </div>
-    <div class="modal-info-cell">
-      <div class="info-label">Colonia</div>
-      <div class="info-value">${n.colonia}</div>
-    </div>`;
-
-  // Contacto
-  const contactTitle  = document.getElementById('modal-contact-title');
-  const contactList   = document.getElementById('modal-contact-list');
-  const contactSection= document.getElementById('modal-contact-section');
-
-  if (n.premium) {
-    contactTitle.textContent = 'Contacto directo';
-    const links = [];
-    if (n.telefono) links.push(`
-      <a class="modal-contact-link" href="tel:${n.telefono}">
-        <span class="contact-ico">📞</span>${n.telefono}
-      </a>`);
-    if (n.whatsapp) links.push(`
-      <a class="modal-contact-link" href="https://wa.me/${n.whatsapp}" target="_blank" rel="noopener">
-        <span class="contact-ico">💬</span>Enviar mensaje por WhatsApp
-      </a>`);
-    if (n.facebook) links.push(`
-      <a class="modal-contact-link" href="https://facebook.com/${n.facebook}" target="_blank" rel="noopener">
-        <span class="contact-ico">📘</span>Ver página en Facebook
-      </a>`);
-    contactList.innerHTML = links.join('') || '<p style="font-size:13px;color:var(--c-text-3)">Sin contacto registrado</p>';
-  } else {
-    contactTitle.textContent = '';
-    contactList.innerHTML = `
-      <div class="modal-upsell">
-        ⭐ El contacto directo (teléfono, WhatsApp, Facebook) está disponible para
-        <strong>negocios Premium</strong>. ¿Eres dueño de este negocio?
-        <a href="registro.html" style="color:var(--c-ambar);text-decoration:none;font-weight:600"> Contáctanos para activar tu perfil →</a>
-      </div>`;
-  }
-
-  overlay.removeAttribute('hidden');
-  document.body.style.overflow = 'hidden';
-
-  // Focus trap básico
-  document.getElementById('modal-close').focus();
-
-  // Centrar mapa en el negocio
-  map.setView([n.lat, n.lng], Math.max(map.getZoom(), 17));
-  const marker = layerMarkers[n.id];
-  if (marker) marker.openPopup();
-}
-
-function cerrarModal() {
-  const overlay = document.getElementById('modal-overlay');
-  overlay.setAttribute('hidden', '');
-  document.body.style.overflow = '';
-}
-
-/* ════════════════════════════════════════════════════════════
-   BÚSQUEDA
-════════════════════════════════════════════════════════════ */
-const searchInput = document.getElementById('search-input');
-const searchClear = document.getElementById('search-clear');
-const suggestionsEl = document.getElementById('search-suggestions');
-
-let searchTimer;
-
-searchInput.addEventListener('input', () => {
-  const val = searchInput.value.trim();
-  Estado.query = val;
-  searchClear.hidden = val.length === 0;
-
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    aplicarFiltros();
-    if (val.length === 0) {
-      mostrarSugerencias(true);
-    } else {
-      cerrarSugerencias();
-    }
-  }, 280);
-});
-
-searchInput.addEventListener('focus', () => {
-  if (!Estado.query) mostrarSugerencias(true);
-});
-
-searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { cerrarSugerencias(); searchInput.blur(); }
-});
-
-function mostrarSugerencias(mostrar) {
-  if (mostrar) {
-    suggestionsEl.removeAttribute('hidden');
-  } else {
-    suggestionsEl.setAttribute('hidden', '');
-  }
-}
-
-function cerrarSugerencias() {
-  suggestionsEl.setAttribute('hidden', '');
-}
-
-function clearSearch() {
-  searchInput.value = '';
-  Estado.query     = '';
-  searchClear.hidden = true;
-  cerrarSugerencias();
-  aplicarFiltros();
-}
-
-// Chips de sugerencias
-function renderizarSugerencias() {
-  const chips = document.getElementById('suggestions-chips');
-  chips.innerHTML = SUGERENCIAS_POPULARES
-    .map(s => `<button class="suggestion-chip" data-term="${s}" aria-label="Buscar ${s}">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      ${s}
-    </button>`)
-    .join('');
-
-  chips.querySelectorAll('.suggestion-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const term = chip.dataset.term;
-      searchInput.value = term;
-      Estado.query      = term;
-      searchClear.hidden = false;
-      cerrarSugerencias();
-      aplicarFiltros();
-    });
-  });
-}
-
-/* ════════════════════════════════════════════════════════════
-   COLONIAS
-════════════════════════════════════════════════════════════ */
-document.querySelectorAll('.chip[data-colonia]').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.chip[data-colonia]').forEach(c => {
-      c.classList.remove('chip--active');
-      c.setAttribute('aria-pressed', 'false');
-    });
-    chip.classList.add('chip--active');
-    chip.setAttribute('aria-pressed', 'true');
-    Estado.colonia = chip.dataset.colonia;
-    aplicarFiltros();
-
-    // Centrar mapa en la colonia
-    const primer = Estado.filtrados[0];
-    if (primer) map.setView([primer.lat, primer.lng], MAPA_ZOOM_DEFAULT);
-  });
-});
-
-/* ════════════════════════════════════════════════════════════
-   ORDENAR
-════════════════════════════════════════════════════════════ */
-document.getElementById('sort-select').addEventListener('change', function() {
-  Estado.ordenar = this.value;
-  aplicarFiltros();
-});
-
-/* ════════════════════════════════════════════════════════════
-   GEOLOCALIZACIÓN
-════════════════════════════════════════════════════════════ */
-document.getElementById('btn-gps').addEventListener('click', solicitarGPS);
-
-function solicitarGPS() {
-  const btn = document.getElementById('btn-gps');
-  if (!navigator.geolocation) {
-    alert('Tu navegador no soporta geolocalización.');
+    `;
     return;
   }
 
-  btn.classList.add('is-active');
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      Estado.userLatLng = [lat, lng];
-      map.setView([lat, lng], 17);
-      ponerMarcadorUsuario(lat, lng);
-      btn.classList.remove('is-active');
-
-      // Seleccionar automáticamente la colonia más cercana (simplificado)
-      detectarColoniaCercana(lat, lng);
-    },
-    err => {
-      console.warn('[LocalCerca] GPS no disponible:', err.message);
-      btn.classList.remove('is-active');
-      alert('No se pudo obtener tu ubicación. Verifica los permisos del navegador.');
-    },
-    { timeout: 10000, maximumAge: 60000 }
-  );
+  lista.forEach(negocio => {
+    const tarjeta = document.createElement('article');
+    tarjeta.className = 'tarjeta-comercio animated fadeIn';
+    tarjeta.innerHTML = `
+      <div class="tarjeta-cuerpo">
+        <span class="etiqueta-categoria">${negocio.categoria.toUpperCase()}</span>
+        <h3 class="comercio-titulo">${negocio.nombre}</h3>
+        <p class="comercio-descripcion">${negocio.descripcion || 'Sin descripción disponible.'}</p>
+        ${negocio.telefono ? `<a href="tel:${negocio.telefono}" class="comercio-telefono"><i class="fas fa-phone-alt"></i> ${negocio.telefono}</a>` : ''}
+      </div>
+      <div class="tarjeta-acciones">
+        <button class="btn-ir" onclick="enfocarComercio(${negocio.lat}, ${negocio.lng}, '${negocio.nombre.replace(/'/g, "\\'")}')">
+          <i class="fas fa-directions"></i> Ubicar
+        </button>
+      </div>
+    `;
+    contenedor.appendChild(tarjeta);
+  });
 }
 
-function detectarColoniaCercana(lat, lng) {
-  // Distancia simple (Haversine simplificado)
-  function dist(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
+function actualizarMarcadoresMapa(lista) {
+  if (!marcadoresCluster) return;
+  marcadoresCluster.clearLayers();
 
-  let minDist = Infinity;
-  let coloniaDetectada = 'todos';
+  lista.forEach(negocio => {
+    const popupContenido = `
+      <div class="popup-custom">
+        <h4>${negocio.nombre}</h4>
+        <p>${negocio.descripcion || ''}</p>
+        ${negocio.telefono ? `<a href="tel:${negocio.telefono}" class="btn-popup-tel"><i class="fas fa-phone"></i> Llamar</a>` : ''}
+      </div>
+    `;
 
-  Estado.negocios.forEach(n => {
-    const d = dist(lat, lng, n.lat, n.lng);
-    if (d < minDist) {
-      minDist = d;
-      coloniaDetectada = n.colonia;
+    const marcador = L.marker([negocio.lat, negocio.lng])
+      .bindPopup(popupContenido, { closeButton: false, offset: L.point(0, -5) });
+    
+    marcadoresCluster.addLayer(marcador);
+  });
+}
+
+function renderizarSugerencias() {
+  const contenedorSugerencias = document.getElementById('sugerencias-categorias');
+  if (!contenedorSugerencias) return;
+
+  CATEGORIAS_VALIDAS.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-filtro-rapido';
+    btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+    btn.onclick = () => {
+      Estado.categoriaActiva = cat;
+      
+      // Marcar visualmente el botón activo en el menú lateral real si existe
+      const itemsMenu = document.querySelectorAll('.menu-item');
+      itemsMenu.forEach(item => {
+        if(item.dataset.categoria === cat) item.classList.add('is-active');
+        else item.classList.remove('is-active');
+      });
+
+      actualizarInterfaz();
+    };
+    contenedorSugerencias.appendChild(btn);
+  });
+}
+
+function enfocarComercio(lat, lng, nombre) {
+  if (!map) return;
+  map.setView([lat, lng], 17, { animate: true, duration: 1 });
+  
+  // Buscar el marcador específico dentro del cluster y abrir su información emergente
+  marcadoresCluster.eachLayer(marker => {
+    if (marker.getLatLng().lat === lat && marker.getLatLng().lng === lng) {
+      setTimeout(() => marker.openPopup(), 300);
     }
   });
 
-  if (coloniaDetectada !== 'todos') {
-    const chipEl = document.querySelector(`.chip[data-colonia="${coloniaDetectada}"]`);
-    if (chipEl) chipEl.click();
+  // Cerrar el panel lateral responsivo en móviles para ver el mapa
+  const panelLateral = document.getElementById('panel-lateral');
+  if (panelLateral && window.innerWidth <= 768) {
+    panelLateral.classList.remove('is-open');
   }
 }
 
+function mostrarError(mensaje) {
+  const toast = document.createElement('div');
+  toast.className = 'toast-error-app';
+  toast.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${mensaje}</span>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
 /* ════════════════════════════════════════════════════════════
-   PANEL — arrastrar (móvil)
+   5. ESCUCHADORES DE EVENTOS DEL USUARIO (LISTENERS)
 ════════════════════════════════════════════════════════════ */
-(function initPanelDrag() {
-  const panel  = document.getElementById('panel');
-  const handle = document.getElementById('panel-handle');
-  let startY   = 0;
-  let startH   = 0;
-
-  function onStart(e) {
-    startY = (e.touches ? e.touches[0].clientY : e.clientY);
-    startH = panel.offsetHeight;
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('mouseup',  onEnd);
-    document.addEventListener('touchend', onEnd);
-  }
-
-  function onMove(e) {
-    e.preventDefault();
-    const y  = e.touches ? e.touches[0].clientY : e.clientY;
-    const dy = startY - y;
-    const vh = window.innerHeight;
-    const newH = Math.min(Math.max(startH + dy, 56), vh * 0.65);
-    panel.style.height = newH + 'px';
-    panel.style.transition = 'none';
-  }
-
-  function onEnd() {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('mouseup',  onEnd);
-    document.removeEventListener('touchend', onEnd);
-
-    panel.style.transition = '';
-    const h = panel.offsetHeight;
-    const vh = window.innerHeight;
-
-    if      (h < 90)           { panel.classList.add('is-collapsed'); panel.classList.remove('is-expanded'); panel.style.height = ''; }
-    else if (h > vh * 0.35)    { panel.classList.add('is-expanded');  panel.classList.remove('is-collapsed'); panel.style.height = ''; }
-    else                       { panel.classList.remove('is-collapsed', 'is-expanded'); panel.style.height = ''; }
-  }
-
-  handle.addEventListener('mousedown',  onStart);
-  handle.addEventListener('touchstart', onStart, { passive: true });
-
-  handle.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      panel.classList.toggle('is-expanded');
-      panel.classList.remove('is-collapsed');
-    }
+// Control de pestañas/menú de categorías
+document.querySelectorAll('.menu-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('is-active'));
+    e.currentTarget.classList.add('is-active');
+    Estado.categoriaActiva = e.currentTarget.dataset.categoria;
+    actualizarInterfaz();
   });
-})();
-
-/* ════════════════════════════════════════════════════════════
-   MODAL — eventos
-════════════════════════════════════════════════════════════ */
-document.getElementById('modal-close').addEventListener('click', cerrarModal);
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) cerrarModal();
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') cerrarModal();
 });
 
-/* ════════════════════════════════════════════════════════════
-   CERRAR SUGERENCIAS AL CLICK FUERA
-════════════════════════════════════════════════════════════ */
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-container')) cerrarSugerencias();
-});
+// Caja de entrada de búsqueda con retardo sutil (Debounce manual sencillo)
+const inputBusqueda = document.getElementById('input-busqueda');
+if (inputBusqueda) {
+  let temporizadorBusqueda;
+  inputBusqueda.addEventListener('input', (e) => {
+    clearTimeout(temporizadorBusqueda);
+    temporizadorBusqueda = setTimeout(() => {
+      Estado.busquedaQuery = e.target.value;
+      actualizarInterfaz();
+    }, 250);
+  });
+}
+
+// Botón de activación del menú responsivo flotante
+const btnAlternarPanel = document.getElementById('btn-toggle-panel');
+const panelLateral = document.getElementById('panel-lateral');
+if (btnAlternarPanel && panelLateral) {
+  btnAlternarPanel.addEventListener('click', () => {
+    panelLateral.classList.toggle('is-open');
+  });
+}
 
 /* ════════════════════════════════════════════════════════════
-   REGISTRAR BÚSQUEDA EN APPS SCRIPT
+   6. SPLASH → CONTROL INTELIGENTE DE INICIALIZACIÓN
 ════════════════════════════════════════════════════════════ */
-const busquedasRegistradas = new Set();
+function inicializarAplicacion() {
+  const splashElement = document.getElementById('splash');
 
-async function registrarBusqueda(termino) {
-  if (USAR_DATOS_DEMO) return;
-  if (busquedasRegistradas.has(termino)) return;
-  busquedasRegistradas.add(termino);
-
-  try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        accion:      'busqueda',
-        termino,
-        zona:        Estado.colonia,
-        resultados:  Estado.filtrados.length,
-      }),
-    });
-  } catch (e) {
-    // Silencioso — no afecta la experiencia del usuario
+  // 1. Validar si Leaflet se cargó correctamente (Evita congelamiento si estás offline)
+  if (typeof L === 'undefined') {
+    console.error('[LocalCerca] Error crítico: No se pudo cargar Leaflet. Verifica tu conexión a internet.');
+    mostrarError('No se pudo cargar el mapa (Leaflet offline). Mostrando datos locales...');
+    
+    // Forzamos la retirada del splash para que el usuario pueda interactuar con la web
+    if (splashElement) splashElement.classList.add('is-hidden');
+    return;
   }
-}
 
-/* ════════════════════════════════════════════════════════════
-   UI HELPERS
-════════════════════════════════════════════════════════════ */
-function mostrarSkeleton(mostrar) {
-  document.getElementById('loading-state').hidden = !mostrar;
-}
-
-function mostrarError(msg) {
-  const scroll = document.getElementById('cards-scroll');
-  scroll.querySelectorAll('.biz-card').forEach(c => c.remove());
-  document.getElementById('empty-state').setAttribute('hidden', '');
-
-  const el = document.createElement('div');
-  el.className = 'empty-state';
-  el.innerHTML = `
-    <div class="empty-icon">⚠️</div>
-    <p class="empty-title">Error de conexión</p>
-    <p class="empty-desc">${msg}</p>
-    <button class="empty-clear" onclick="location.reload()">Reintentar</button>`;
-  scroll.appendChild(el);
-}
-
-/* ════════════════════════════════════════════════════════════
-   SPLASH → INIT
-════════════════════════════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', () => {
+  // 2. Inicializar componentes visuales si la librería existe
   initMapa();
   renderizarSugerencias();
 
-  // Intentar GPS silenciosamente
+  // 3. Intentar GPS de forma segura bajo un bloque try/catch (Evita bloqueos en file:// o entornos inseguros)
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        Estado.userLatLng = [pos.coords.latitude, pos.coords.longitude];
-        map.setView([pos.coords.latitude, pos.coords.longitude], MAPA_ZOOM_DEFAULT);
-        ponerMarcadorUsuario(pos.coords.latitude, pos.coords.longitude);
-      },
-      () => {}, // fallo silencioso — queda en centro default
-      { timeout: 5000, maximumAge: 120000 }
-    );
+    try {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          Estado.userLatLng = [pos.coords.latitude, pos.coords.longitude];
+          if (map) {
+            map.setView([pos.coords.latitude, pos.coords.longitude], MAPA_ZOOM_DEFAULT);
+            ponerMarcadorUsuario(pos.coords.latitude, pos.coords.longitude);
+          }
+        },
+        () => {
+          console.warn('[LocalCerca] No se otorgaron permisos de GPS o la ubicación no está disponible.');
+        }, 
+        { timeout: 5000, maximumAge: 120000 }
+      );
+    } catch (geoError) {
+      console.warn('[LocalCerca] Geolocalización rechazada por políticas del navegador:', geoError.message);
+    }
   }
 
-  // Cargar negocios y ocultar splash
+  // 4. Cargar negocios y ocultar splash screen de forma garantizada al terminar
   cargarNegocios().then(() => {
     setTimeout(() => {
-      document.getElementById('splash').classList.add('is-hidden');
+      if (splashElement) {
+        splashElement.classList.add('is-hidden');
+      }
     }, 200);
   });
-});
+}
+
+// 5. Verificación del ciclo de vida del DOM para asegurar que el script se lance sin retrasos
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', inicializarAplicacion);
+} else {
+  inicializarAplicacion();
+}
