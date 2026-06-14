@@ -5,7 +5,8 @@ const COORDENADAS_DEFAULT = [13.689356, -89.18718]; // Coordenadas de El Salvado
 const MAPA_ZOOM_DEFAULT = 14;
 
 let map;
-let marcadoresCluster;
+let marcadoresCluster = null;
+let marcadoresNormales = []; // Respaldo por si MarkerCluster falla
 let marcadorUsuario = null;
 
 const Estado = {
@@ -28,15 +29,18 @@ function initMapa() {
     maxZoom: 20
   }).addTo(map);
 
-  // Inicialización blindada de los grupos de marcadores agrupados
+  // MODO SEGURO: Inicializar MarkerCluster SOLO si la librería ya cargó en el HTML
   if (typeof L.markerClusterGroup === 'function') {
     marcadoresCluster = L.markerClusterGroup({
       showCoverageOnHover: false,
       spiderfyOnMaxZoom: true
     });
     map.addLayer(marcadoresCluster);
+    console.log("[LocalCerca] Grupos de marcadores activados correctamente.");
   } else {
-    console.error("[LocalCerca] Error: La librería Leaflet.markercluster no se cargó correctamente en el HTML.");
+    // Si da error, usamos una lista normal y no rompemos la app
+    console.warn("[LocalCerca] Servidor desactualizado: Usando modo de marcadores individuales estándar.");
+    marcadoresCluster = null;
   }
 }
 
@@ -65,19 +69,17 @@ async function cargarNegocios() {
     if (!respuesta.ok) throw new Error('No se pudo leer data.json');
     Estado.negocios = await respuesta.json();
   } catch (error) {
-    console.warn('[LocalCerca] Entrando en modo local simulado (Datos de demostración).');
-    // Datos mockup para que la app no quede en blanco si falta data.json temporalmente
+    console.warn('[LocalCerca] Cargando datos locales simulados.');
     Estado.negocios = [
       { id: 1, nombre: "Centro de Impresiones Rápidas", tipo: "premium", colonia: "Urb. Nuevo Lourdes", lat: 13.6893, lng: -89.1871, descripcion: "Impresiones láser, copias, encuadernación y pagos de servicios." },
       { id: 2, nombre: "Banco del Barrio", tipo: "regular", colonia: "Col. Escalón", lat: 13.6910, lng: -89.1850, descripcion: "Retiros, depósitos y corresponsal financiero rápido." },
-      { id: 3, nombre: "Pupusería y Licuados Bella Vista", tipo: "premium", colonia: "Merliot", lat: 13.6850, lng: -89.2010, descripcion: "Pupusas de maíz y arroz, desayunos tradicionales y minutas." }
+      { id: 3, nombre: "Pupusería Bella Vista", tipo: "premium", colonia: "Merliot", lat: 13.6850, lng: -89.2010, descripcion: "Pupusas de maíz y arroz, desayunos tradicionales." }
     ];
   }
   actualizarInterfaz();
 }
 
 function actualizarInterfaz() {
-  // Desactivar el esqueleto visual de carga inicial del panel
   const loadingState = document.getElementById('loading-state');
   if (loadingState) loadingState.hidden = true;
 
@@ -88,7 +90,6 @@ function actualizarInterfaz() {
     return cumpleColonia && cumpleBusqueda;
   });
 
-  // Mostrar la cantidad de negocios listados
   const txtCount = document.getElementById('panel-count');
   if (txtCount) txtCount.textContent = `(${negociosFiltrados.length})`;
 
@@ -97,14 +98,13 @@ function actualizarInterfaz() {
 }
 
 /* ════════════════════════════════════════════════════════════
-   4. RENDERIZADO DE COMPONENTES DE INTERFAZ
+   4. RENDERIZADO DE COMPONENTES
 ════════════════════════════════════════════════════════════ */
 function renderizarTarjetas(lista) {
   const contenedor = document.getElementById('cards-scroll');
   const emptyState = document.getElementById('empty-state');
   if (!contenedor) return;
 
-  // Limpiar tarjetas dinámicas anteriores sin alterar los contenedores estructurales
   const tarjetasViejas = contenedor.querySelectorAll('.card-item-dinamico');
   tarjetasViejas.forEach(t => t.remove());
 
@@ -124,11 +124,11 @@ function renderizarTarjetas(lista) {
     card.className = `card-item-dinamico card-negocio ${negocio.tipo === 'premium' ? 'card--premium' : ''}`;
     card.setAttribute('role', 'listitem');
     card.innerHTML = `
-      <div style="padding: 16px; border-bottom: 1px solid #eee; position: relative;">
+      <div style="padding: 16px; border-bottom: 1px solid #eee;">
         <span style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #ff6b6b;">${negocio.colonia}</span>
         <h3 style="margin: 4px 0; font-family: 'Syne', sans-serif; font-size: 16px;">${negocio.nombre}</h3>
-        <p style="font-size: 13px; color: #555; margin: 4px 0 12px 0; line-height: 1.4;">${negocio.descripcion || ''}</p>
-        <button class="btn-ubicar-card" style="background: #111; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.2s;">
+        <p style="font-size: 13px; color: #555; margin: 4px 0 12px 0;">${negocio.descripcion || ''}</p>
+        <button class="btn-ubicar-card" style="background: #111; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;">
           📍 Ubicar en mapa
         </button>
       </div>
@@ -137,12 +137,15 @@ function renderizarTarjetas(lista) {
     card.querySelector('.btn-ubicar-card').onclick = () => {
       if (map) {
         map.setView([negocio.lat, negocio.lng], 17, { animate: true });
-        // Buscar y desplegar el popup automáticamente al centrar
+        
+        // Abrir popup de forma compatible con ambos modos
         if (marcadoresCluster) {
-          marcadoresCluster.eachLayer(marker => {
-            if (marker.getLatLng().lat === negocio.lat && marker.getLatLng().lng === negocio.lng) {
-              setTimeout(() => marker.openPopup(), 250);
-            }
+          marcadoresCluster.eachLayer(m => {
+            if (m.getLatLng().lat === negocio.lat && m.getLatLng().lng === negocio.lng) setTimeout(() => m.openPopup(), 250);
+          });
+        } else {
+          marcadoresNormales.forEach(m => {
+            if (m.getLatLng().lat === negocio.lat && m.getLatLng().lng === negocio.lng) setTimeout(() => m.openPopup(), 250);
           });
         }
       }
@@ -153,17 +156,29 @@ function renderizarTarjetas(lista) {
 }
 
 function actualizarMarcadores(lista) {
-  if (!marcadoresCluster) return;
-  marcadoresCluster.clearLayers();
+  // Limpieza si usamos clusters
+  if (marcadoresCluster) {
+    marcadoresCluster.clearLayers();
+  } else {
+    // Limpieza si estamos usando marcadores normales de Leaflet
+    marcadoresNormales.forEach(m => map.removeLayer(m));
+    marcadoresNormales = [];
+  }
 
   lista.forEach(negocio => {
     const marcador = L.marker([negocio.lat, negocio.lng]).bindPopup(`
       <div style="font-family: 'Inter', sans-serif; padding: 4px;">
         <strong style="font-family: 'Syne', sans-serif; font-size: 14px; display:block; margin-bottom:4px;">${negocio.nombre}</strong>
-        <span style="font-size:12px; color:#444;">${negocio.descripcion || 'Sin descripción disponible.'}</span>
+        <span style="font-size:12px; color:#444;">${negocio.descripcion || 'Sin descripción.'}</span>
       </div>
     `, { closeButton: false });
-    marcadoresCluster.addLayer(marcador);
+
+    if (marcadoresCluster) {
+      marcadoresCluster.addLayer(marcador);
+    } else {
+      marcador.addTo(map);
+      marcadoresNormales.push(marcador);
+    }
   });
 }
 
@@ -171,7 +186,6 @@ function actualizarMarcadores(lista) {
    5. ESCUCHADORES DE EVENTOS (LISTENERS)
 ════════════════════════════════════════════════════════════ */
 function asociarEventos() {
-  // Manejador del cuadro de búsqueda integrado (search-input)
   const inputBusqueda = document.getElementById('search-input');
   if (inputBusqueda) {
     inputBusqueda.addEventListener('input', (e) => {
@@ -180,28 +194,21 @@ function asociarEventos() {
     });
   }
 
-  // Filtrado dinámico por barra superior de colonias
   const chips = document.querySelectorAll('.colonias-scroll .chip');
   chips.forEach(chip => {
     chip.addEventListener('click', (e) => {
-      chips.forEach(c => {
-        c.classList.remove('chip--active');
-        c.setAttribute('aria-pressed', 'false');
-      });
+      chips.forEach(c => c.classList.remove('chip--active'));
       e.currentTarget.classList.add('chip--active');
-      e.currentTarget.setAttribute('aria-pressed', 'true');
       Estado.coloniaActiva = e.currentTarget.dataset.colonia;
       actualizarInterfaz();
     });
   });
 
-  // Controles flotantes de zoom personalizados
   const btnIn = document.getElementById('zoom-in');
   const btnOut = document.getElementById('zoom-out');
   if (btnIn) btnIn.onclick = () => { if (map) map.zoomIn(); };
   if (btnOut) btnOut.onclick = () => { if (map) map.zoomOut(); };
 
-  // Botón GPS del panel superior
   const btnGps = document.getElementById('btn-gps');
   if (btnGps) {
     btnGps.onclick = () => {
@@ -209,58 +216,45 @@ function asociarEventos() {
         navigator.geolocation.getCurrentPosition(pos => {
           map.setView([pos.coords.latitude, pos.coords.longitude], 16);
           ponerMarcadorUsuario(pos.coords.latitude, pos.coords.longitude);
-        }, () => console.warn("Ubicación rechazada por el dispositivo."));
+        });
       }
     };
   }
 }
 
-// Función global requerida por el botón del empty state del HTML
 window.clearSearch = function() {
   const inputBusqueda = document.getElementById('search-input');
   if (inputBusqueda) inputBusqueda.value = '';
   Estado.busquedaQuery = '';
-  
   const primeraColonia = document.querySelector('.colonias-scroll .chip');
-  if (primeraColonia) primeraColonia.click(); // Vuelve a seleccionar 'Todas'
+  if (primeraColonia) primeraColonia.click();
 };
 
 /* ════════════════════════════════════════════════════════════
-   6. CONTROL DE ARRANQUE Y RETIRADA DEL SPLASH SCREEN
+   6. CONTROL DE ARRANQUE IMPERMEABLE
 ════════════════════════════════════════════════════════════ */
 function inicializarAplicacion() {
   const splashElement = document.getElementById('splash');
 
-  // Inicialización de módulos core
-  initMapa();
-  asociarEventos();
-
-  // Intentar geolocalización en background no-bloqueante al iniciar
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        if (map) {
-          map.setView([pos.coords.latitude, pos.coords.longitude], MAPA_ZOOM_DEFAULT);
-          ponerMarcadorUsuario(pos.coords.latitude, pos.coords.longitude);
-        }
-      },
-      err => console.log("Iniciando con coordenadas por defecto."),
-      { timeout: 3500 }
-    );
+  // Ejecutar inicialización pase lo que pase
+  try {
+    initMapa();
+    asociarEventos();
+  } catch(err) {
+    console.error("[LocalCerca] Error en arranque crítico:", err);
   }
 
-  // Carga asíncrona de negocios y remoción inmediata del Splash Screen
+  // Quitar la pantalla de carga inmediatamente de forma garantizada
   cargarNegocios().finally(() => {
     setTimeout(() => {
       if (splashElement) {
         splashElement.style.display = 'none'; 
-        console.log("[LocalCerca] Inicialización exitosa. Splash retirado.");
+        console.log("[LocalCerca] Aplicación desplegada en modo seguro continuo.");
       }
-    }, 300);
+    }, 200);
   });
 }
 
-// Control nativo del ciclo de vida del DOM
 if (document.readyState === 'loading') {
   window.addEventListener('DOMContentLoaded', inicializarAplicacion);
 } else {
