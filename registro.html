@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registra tu Negocio en vico</title>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0D1410; color: #fff; padding: 20px; display: flex; justify-content: center; }
+    .form-box { background: #141C18; padding: 30px; border-radius: 12px; max-width: 450px; width: 100%; border: 1px solid rgba(255,255,255,0.1); }
+    h2 { font-family: 'Syne', sans-serif; margin-top: 0; color: #22A05E; }
+    label { display: block; margin: 12px 0 6px; font-size: 14px; }
+    input, textarea, select { width: 100%; padding: 10px; background: #1C2820; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; box-sizing: border-box; }
+    button { background: #22A05E; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; margin-top: 20px; font-weight: bold; cursor: pointer; }
+    .coord-btn { background: #1C2820; border: 1px dashed #22A05E; color: #22A05E; margin-top: 5px; cursor:pointer; font-size:12px; padding:6px; }
+  </style>
+</head>
+<body>
+
+  <div class="form-box">
+    <h2>Da de alta tu negocio</h2>
+    <p style="font-size: 12px; color: #aaa;">Tu negocio pasará por un proceso de revisión antes de aparecer en el mapa activo.</p>
+    
+    <form id="registroForm">
+      <label>Nombre del Comercio *</label>
+      <input type="text" id="nombre" required placeholder="Ej. Pupusería El Buen Sabor">
+
+      <label>Colonia / Zona *</label>
+      <select id="colonia" required>
+        <option value="Urb. Nuevo Lourdes">Urb. Nuevo Lourdes</option>
+        <option value="Col. Escalón">Col. Escalón</option>
+        <option value="Santa Elena">Santa Elena</option>
+        <option value="Merliot">Merliot</option>
+      </select>
+
+      <label>Categoría</label>
+      <select id="categoria">
+        <option value="comida">Comida y Restaurantes</option>
+        <option value="servicios">Servicios (Impresiones, Pagos, Bancos)</option>
+        <option value="salud">Salud y Farmacias</option>
+        <option value="ocio">Ocio y Otros</option>
+      </select>
+
+      <label>Descripción de lo que ofreces *</label>
+      <textarea id="descripcion" rows="3" required placeholder="Ej. Impresiones a color, copias nítidas, pago de recibos de agua y luz. Venta de útiles escolares."></textarea>
+
+      <label>Teléfono de contacto</label>
+      <input type="tel" id="telefono" placeholder="Ej. 2200-1122">
+
+      <label>Ubicación Geográfica *</label>
+      <div style="display: flex; gap: 10px;">
+        <input type="number" step="any" id="lat" placeholder="Latitud" required readonly>
+        <input type="number" step="any" id="lng" placeholder="Longitud" required readonly>
+      </div>
+      <button type="button" class="coord-btn" onclick="obtenerCoordenadasActuales()">📍 Detectar mi ubicación actual en este dispositivo</button>
+
+      <button type="submit">Enviar Solicitud de Alta</button>
+    </form>
+  </div>
+
+  <script>
+    // CAMBIA ESTA URL POR TU URL GENERADA EN EL PASO 1 (APPS SCRIPT)
+    const API_URL = "TU_URL_DE_APPS_SCRIPT_AQUI";
+
+    function obtenerCoordenadasActuales() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          document.getElementById('lat').value = pos.coords.latitude;
+          document.getElementById('lng').value = pos.coords.longitude;
+        }, () => alert("Por favor habilita los permisos de ubicación en tu navegador."));
+      }
+    }
+
+    document.getElementById('registroForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = {
+        nombre: document.getElementById('nombre').value,
+        colonia: document.getElementById('colonia').value,
+        categoria: document.getElementById('categoria').value,
+        descripcion: document.getElementById('descripcion').value,
+        telefono: document.getElementById('telefono').value,
+        lat: document.getElementById('lat').value,
+        lng: document.getElementById('lng').value
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors', // Evita problemas de CORS en Apps Script
+          body: JSON.stringify(payload)
+        });
+        alert("¡Solicitud enviada con éxito! El administrador revisará y aprobará los datos pronto.");
+        document.getElementById('registroForm').reset();
+      } catch (err) {
+        alert("Error al enviar el formulario.");
+      }
+    };
+  </script>
+</body>
+</html>
