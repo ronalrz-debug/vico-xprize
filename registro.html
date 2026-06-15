@@ -15,7 +15,7 @@
     }
 
     body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+      font-family: sans-serif; 
       background: var(--bg); 
       color: var(--text); 
       padding: 20px; 
@@ -29,33 +29,30 @@
 
     .form-box { 
       background: var(--surface); 
-      padding: 30px; 
+      padding: 25px; 
       border-radius: 12px; 
       max-width: 450px; 
       width: 100%; 
       border: 1px solid rgba(255, 255, 255, 0.08); 
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
     }
 
     h2 { 
-      font-size: 24px;
-      margin-top: 0; 
-      margin-bottom: 8px;
+      font-size: 22px;
+      margin: 0 0 8px 0;
       color: var(--accent); 
     }
 
     .subtitle {
       font-size: 13px; 
       color: var(--text-muted);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       line-height: 1.4;
     }
 
     label { 
       display: block; 
-      margin: 16px 0 6px; 
+      margin: 14px 0 6px; 
       font-size: 14px; 
-      font-weight: 500;
     }
 
     input, textarea, select { 
@@ -67,16 +64,11 @@
       color: var(--text); 
       font-size: 14px;
       box-sizing: border-box; 
-      transition: border-color 0.2s;
     }
 
     input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--accent);
-    }
-
-    textarea {
-      resize: vertical;
     }
 
     .coord-row {
@@ -93,13 +85,8 @@
       padding: 10px; 
       border-radius: 6px;
       font-size: 13px; 
-      font-weight: 600;
+      font-weight: bold;
       cursor: pointer; 
-      transition: background 0.2s;
-    }
-
-    .coord-btn:hover {
-      background: rgba(34, 160, 94, 0.1);
     }
 
     .btn-submit { 
@@ -109,15 +96,10 @@
       padding: 14px; 
       width: 100%; 
       border-radius: 6px; 
-      margin-top: 28px; 
+      margin-top: 24px; 
       font-size: 15px;
       font-weight: bold; 
       cursor: pointer; 
-      transition: opacity 0.2s;
-    }
-
-    .btn-submit:hover {
-      opacity: 0.9;
     }
 
     .back-link {
@@ -128,23 +110,19 @@
       text-decoration: none;
       font-size: 13px;
     }
-
-    .back-link:hover {
-      color: var(--text);
-    }
   </style>
 </head>
 <body>
 
   <div class="form-box">
     <h2>Da de alta tu negocio</h2>
-    <p class="subtitle">Completa la información de tu comercio. Los datos ingresados pasarán por una revisión manual antes de aparecer listados de forma pública en el mapa.</p>
+    <p class="subtitle">Ingresa los datos de tu comercio. Pasarán por revisión antes de aparecer en el mapa.</p>
     
     <form id="registroForm">
-      <label for="nombre">Nombre del Comercio *</label>
-      <input type="text" id="nombre" required placeholder="Ej. Papelería e Impresiones San Benito">
+      <label>Nombre del Comercio *</label>
+      <input type="text" id="nombre" required placeholder="Ej. Pupusería El Buen Sabor">
 
-      <label for="colonia">Colonia / Zona *</label>
+      <label>Colonia / Zona *</label>
       <select id="colonia" required>
         <option value="Urb. Nuevo Lourdes">Urb. Nuevo Lourdes</option>
         <option value="Col. Escalón">Col. Escalón</option>
@@ -152,6 +130,82 @@
         <option value="Merliot">Merliot</option>
       </select>
 
-      <label for="categoria">Categoría principal</label>
+      <label>Categoría principal</label>
       <select id="categoria">
-        <option value="serv
+        <option value="servicios">Servicios (Impresiones, Pagos, Copias)</option>
+        <option value="comida">Comida y Restaurantes</option>
+        <option value="salud">Salud y Farmacias</option>
+        <option value="ocio">Ocio y Otros</option>
+      </select>
+
+      <label>Descripción de tus servicios *</label>
+      <textarea id="descripcion" rows="3" required placeholder="Ej. Impresiones, copias, pago de recibos de luz y agua."></textarea>
+
+      <label>Teléfono (Opcional)</label>
+      <input type="tel" id="telefono" placeholder="Ej. 2233-4455">
+
+      <label>Coordenadas en el Mapa *</label>
+      <div class="coord-row">
+        <input type="text" id="lat" placeholder="Latitud" required>
+        <input type="text" id="lng" placeholder="Longitud" required>
+      </div>
+      <button type="button" class="coord-btn" onclick="obtenerCoordenadasActuales()">📍 Detectar ubicación por GPS automáticamente</button>
+
+      <button type="submit" class="btn-submit">Enviar Registro</button>
+    </form>
+
+    <a href="index.html" class="back-link">← Volver al mapa</a>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyaZXNodzFzX8veAs4gX0dF7pp6ApAQWch9d-iQ9_4Ar-ZjzeNHdQ5waiaMquUeDbJ0/exec";
+
+    function obtenerCoordenadasActuales() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            document.getElementById('lat').value = pos.coords.latitude;
+            document.getElementById('lng').value = pos.coords.longitude;
+            alert("Ubicación GPS capturada con éxito.");
+          }, 
+          (error) => {
+            alert("No se pudo obtener el GPS. Puedes escribir las coordenadas manualmente.");
+          },
+          { enableHighAccuracy: true }
+        );
+      } else {
+        alert("Tu dispositivo no soporta geolocalización, escribe las coordenadas a mano.");
+      }
+    }
+
+    document.getElementById('registroForm').onsubmit = async (e) => {
+      e.preventDefault();
+      
+      const formData = new URLSearchParams();
+      formData.append('nombre', document.getElementById('nombre').value);
+      formData.append('colonia', document.getElementById('colonia').value);
+      formData.append('categoria', document.getElementById('categoria').value);
+      formData.append('descripcion', document.getElementById('descripcion').value);
+      formData.append('telefono', document.getElementById('telefono').value);
+      formData.append('lat', document.getElementById('lat').value);
+      formData.append('lng', document.getElementById('lng').value);
+
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors', 
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: formData.toString()
+        });
+        
+        alert("¡Solicitud enviada! Los datos se guardaron en revisión.");
+        document.getElementById('registroForm').reset();
+      } catch (err) {
+        alert("Error de red al enviar el formulario.");
+      }
+    };
+  </script>
+</body>
+</html>
